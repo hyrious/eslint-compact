@@ -1,3 +1,4 @@
+import { writeFileSync } from "fs";
 import { spawnSync } from "child_process";
 
 import eslint_recommended from "./node_modules/eslint/conf/eslint-recommended.js";
@@ -32,6 +33,73 @@ for (const name of extend) {
   extend_configs.push(await load_config(name));
 }
 
+function merge(merged, key, actual) {
+  if (key === "rules") {
+    for (const key2 of Object.keys(actual)) {
+      merged[key2] = actual[key2];
+    }
+  } else {
+    merged[key] = actual;
+  }
+}
+
+const extend_config = extend_configs.reduce((merged, config) => {
+  for (const key of Object.keys(config)) {
+    if (!(key in merged)) {
+      merged[key] = config[key];
+    } else {
+      merge(merged, key, config[key]);
+    }
+  }
+  return merged;
+}, {});
+
 const target_config = await load_config(target);
 
-console.log({ extend_configs, target_config });
+const result = { extends: extend, rules: {} };
+
+function uniq(array) {
+  let visited = new Set();
+  let result = [];
+  for (let a of array) {
+    if (!visited.has(a)) {
+      visited.add(a);
+      result.push(a);
+    }
+  }
+  return a;
+}
+
+function is_equal(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a)) return a.every((e, i) => is_equal(e, b[i]));
+  if (typeof a === "object" && a !== null)
+    return Object.keys(a).every(k => is_equal(a[k], b[k]));
+}
+
+const TURN_OFF_MISSING_RULES = false;
+
+for (const key of Object.keys(target_config)) {
+  if (key === "rules") {
+    const old_values = extend_config[key];
+    const values = target_config[key];
+    for (const key2 of Object.keys(target_config.rules)) {
+      const old_value = old_values[key2];
+      const value = values[key2];
+      if (old_value && !value) {
+        if (TURN_OFF_MISSING_RULES) {
+          result.rules[key2] = "off";
+        }
+      } else if (!is_equal(old_value, value)) {
+        result.rules[key2] = value;
+      }
+    }
+  } else if (key === "extends") {
+    result.extends = uniq([...result.extends, ...target_config.extends]);
+  } else {
+    result[key] = target_config[key];
+  }
+}
+
+writeFileSync("out.json", JSON.stringify(result, null, 2));
