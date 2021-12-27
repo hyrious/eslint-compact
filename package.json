@@ -1,0 +1,13 @@
+{
+  "name": "@hyrious/eslint-compact",
+  "version": "0.1.0",
+  "description": "Find the minimal representation of your favorite eslint config.",
+  "exports": "./index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node index.js eslint:recommended @npmcli/eslint-config"
+  },
+  "devDependencies": {
+    "eslint": "^8.5.0"
+  }
+}
