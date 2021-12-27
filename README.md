@@ -5,6 +5,7 @@ Find the minimal representation of your favorite eslint config.
 **Usage**
 
 ```bash
+$ pnpm i
 $ node index.js [...extends] target
 ```
 
